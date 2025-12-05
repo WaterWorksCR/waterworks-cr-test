@@ -1,0 +1,344 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { FaBoxOpen, FaEnvelope, FaTrash } from "react-icons/fa";
+
+interface Order {
+  id: number;
+  name: string;
+  email: string;
+  service: string;
+  deliveryMethod: string;
+  address?: string;
+  details: string;
+}
+
+interface Message {
+  id: number;
+  name: string;
+  email: string;
+  message: string;
+}
+
+export default function AdminPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [messageSearch, setMessageSearch] = useState("");
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then((res) => res.json())
+      .then((data) => {
+        setOrders(data);
+        setAllOrders(data);
+      });
+    fetch("/api/contact")
+      .then((res) => res.json())
+      .then((data) => {
+        setMessages(data);
+        setAllMessages(data);
+      });
+  }, []);
+
+  useEffect(() => {
+    const filtered = allOrders.filter(
+      (order) =>
+        order.name.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        order.email.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        order.service.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        order.details.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        order.deliveryMethod.toLowerCase().includes(orderSearch.toLowerCase()) ||
+        (order.address && order.address.toLowerCase().includes(orderSearch.toLowerCase()))
+    );
+    setOrders(filtered);
+  }, [orderSearch, allOrders]);
+
+  useEffect(() => {
+    const filtered = allMessages.filter(
+      (message) =>
+        message.name.toLowerCase().includes(messageSearch.toLowerCase()) ||
+        message.email.toLowerCase().includes(messageSearch.toLowerCase()) ||
+        message.message.toLowerCase().includes(messageSearch.toLowerCase())
+    );
+    setMessages(filtered);
+  }, [messageSearch, allMessages]);
+
+  const handleDelete = async (id: number) => {
+    toast(
+      (t) => (
+        <span className="flex items-center">
+          <span className="mr-4">Are you sure you want to delete this order?</span>
+          <button
+            onClick={() => {
+              fetch(`/api/orders?id=${id}`, { method: "DELETE" }).then(() => {
+                setOrders(orders.filter((order) => order.id !== id));
+                toast.dismiss(t.id);
+                toast.success("Order deleted!");
+              });
+            }}
+            className="bg-green-500 text-white px-3 py-1 rounded-md mr-2"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-red-500 text-white px-3 py-1 rounded-md"
+          >
+            No
+          </button>
+        </span>
+      ),
+      {
+        duration: 6000,
+      }
+    );
+  };
+
+  const handleDeleteMessage = async (id: number) => {
+    toast(
+      (t) => (
+        <span className="flex items-center">
+          <span className="mr-4">Are you sure you want to delete this message?</span>
+          <button
+            onClick={() => {
+              fetch(`/api/contact?id=${id}`, { method: "DELETE" }).then(() => {
+                setMessages(messages.filter((msg) => msg.id !== id));
+                toast.dismiss(t.id);
+                toast.success("Message deleted!");
+              });
+            }}
+            className="bg-green-500 text-white px-3 py-1 rounded-md mr-2"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="bg-red-500 text-white px-3 py-1 rounded-md"
+          >
+            No
+          </button>
+        </span>
+      ),
+      {
+        duration: 6000,
+      }
+    );
+  };
+
+  const handlePrint = (order: Order) => {
+    const printContent = `
+      <html>
+        <head>
+          <title>Order Details</title>
+          <style>
+            body { font-family: sans-serif; }
+            h1 { color: #0070F3; }
+          </style>
+        </head>
+        <body>
+          <h1>Order Details</h1>
+          <p><strong>Name:</strong> ${order.name}</p>
+          <p><strong>Email:</strong> ${order.email}</p>
+          <p><strong>Service:</strong> ${order.service}</p>
+          <p><strong>Delivery Method:</strong> ${order.deliveryMethod}</p>
+          ${order.address ? `<p><strong>Address:</strong> ${order.address}</p>` : ""}
+          <p><strong>Details:</strong> ${order.details}</p>
+        </body>
+      </html>
+    `;
+    const printWindow = window.open("", "", "height=600,width=800");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold text-center mb-8">Admin Dashboard</h1>
+
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div className="bg-secondary p-6 rounded-lg shadow-md flex items-center">
+          <FaBoxOpen className="text-4xl text-primary mr-4" />
+          <div>
+            <h2 className="text-2xl font-bold">{orders.length}</h2>
+            <p className="text-gray-400">Total Orders</p>
+          </div>
+        </div>
+        <div className="bg-secondary p-6 rounded-lg shadow-md flex items-center">
+          <FaEnvelope className="text-4xl text-primary mr-4" />
+          <div>
+            <h2 className="text-2xl font-bold">{messages.length}</h2>
+            <p className="text-gray-400">Total Messages</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Customer Orders Section */}
+      <div className="bg-secondary p-8 rounded-lg shadow-md mb-12">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold">Customer Orders</h2>
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={orderSearch}
+            onChange={(e) => setOrderSearch(e.target.value)}
+            className="bg-background text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="bg-background">
+                <th className="px-4 py-2 text-left text-primary">Name</th>
+                <th className="px-4 py-2 text-left text-primary">Email</th>
+                <th className="px-4 py-2 text-left text-primary">Service</th>
+                <th className="px-4 py-2 text-left text-primary">Delivery</th>
+                <th className="px-4 py-2 text-left text-primary">Address</th>
+                <th className="px-4 py-2 text-left text-primary">Details</th>
+                <th className="px-4 py-2 text-left text-primary">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id} className="border-b border-gray-700">
+                  <td className="px-4 py-2">{order.name}</td>
+                  <td className="px-4 py-2">{order.email}</td>
+                  <td className="px-4 py-2">{order.service}</td>
+                  <td className="px-4 py-2">{order.deliveryMethod}</td>
+                  <td className="px-4 py-2">{order.address || "N/A"}</td>
+                  <td className="px-4 py-2">{order.details}</td>
+                  <td className="px-4 py-2 flex items-center space-x-2">
+                    <a
+                      href={`mailto:${order.email}`}
+                      className="bg-primary text-white font-bold py-1 px-3 rounded-md hover:bg-blue-600"
+                    >
+                      Email
+                    </a>
+                    <button
+                      onClick={() => handlePrint(order)}
+                      className="bg-gray-600 text-white font-bold py-1 px-3 rounded-md hover:bg-gray-700"
+                    >
+                      Print
+                    </button>
+                    <button
+                      onClick={() => handleDelete(order.id)}
+                      className="bg-red-600 text-white font-bold py-1 px-3 rounded-md hover:bg-red-700"
+                    >
+                      <FaTrash />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Message Center Section */}
+      <div className="bg-secondary p-8 rounded-lg shadow-md">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold">Message Center</h2>
+          <input
+            type="text"
+            placeholder="Search messages..."
+            value={messageSearch}
+            onChange={(e) => setMessageSearch(e.target.value)}
+            className="bg-background text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="overflow-x-auto">
+        <table className="w-full table-auto">
+          <thead>
+            <tr className="bg-background">
+              <th className="px-4 py-2 text-left text-primary">Name</th>
+              <th className="px-4 py-2 text-left text-primary">Email</th>
+              <th className="px-4 py-2 text-left text-primary">Message</th>
+              <th className="px-4 py-2 text-left text-primary">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {messages.map((message) => (
+              <tr key={message.id} className="border-b border-gray-700">
+                <td className="px-4 py-2">{message.name}</td>
+                <td className="px-4 py-2">{message.email}</td>
+                <td className="px-4 py-2 max-w-sm truncate">{message.message}</td>
+                <td className="px-4 py-2 flex items-center space-x-2">
+                  <a
+                    href={`mailto:${message.email}`}
+                    className="bg-primary text-white font-bold py-1 px-3 rounded-md hover:bg-blue-600"
+                  >
+                    Email
+                  </a>
+                  <button
+                    onClick={() => handleDeleteMessage(message.id)}
+                    className="bg-red-600 text-white font-bold py-1 px-3 rounded-md hover:bg-red-700"
+                  >
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      {/* Message Center Section */}
+      <div className="bg-secondary p-8 rounded-lg shadow-md">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold">Message Center</h2>
+          <input
+            type="text"
+            placeholder="Search messages..."
+            value={messageSearch}
+            onChange={(e) => setMessageSearch(e.target.value)}
+            className="bg-background text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div className="overflow-x-auto">
+        <table className="w-full table-auto">
+          <thead>
+            <tr className="bg-background">
+              <th className="px-4 py-2 text-left text-primary">Name</th>
+              <th className="px-4 py-2 text-left text-primary">Email</th>
+              <th className="px-4 py-2 text-left text-primary">Message</th>
+              <th className="px-4 py-2 text-left text-primary">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {messages.map((message) => (
+              <tr key={message.id} className="border-b border-gray-700">
+                <td className="px-4 py-2">{message.name}</td>
+                <td className="px-4 py-2">{message.email}</td>
+                <td className="px-4 py-2 max-w-sm truncate">{message.message}</td>
+                <td className="px-4 py-2 flex items-center space-x-2">
+                  <a
+                    href={`mailto:${message.email}`}
+                    className="bg-primary text-white font-bold py-1 px-3 rounded-md hover:bg-blue-600"
+                  >
+                    Email
+                  </a>
+                  <button
+                    onClick={() => handleDeleteMessage(message.id)}
+                    className="bg-red-600 text-white font-bold py-1 px-3 rounded-md hover:bg-red-700"
+                  >
+                    <FaTrash />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  );
+}
