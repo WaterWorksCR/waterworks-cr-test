@@ -5,3 +5,5 @@ lowkey need to update this
 
 
 vibecoding+
+
+Deployment notes: see `DEPLOYMENT.md`.

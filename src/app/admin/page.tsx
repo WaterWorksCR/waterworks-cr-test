@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { FaBoxOpen, FaEnvelope, FaTrash } from "react-icons/fa";
 
@@ -28,21 +29,89 @@ export default function AdminPage() {
   const [allMessages, setAllMessages] = useState<Message[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [messageSearch, setMessageSearch] = useState("");
+  const [sessionRemaining, setSessionRemaining] = useState<string>("Unknown");
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const redirectScheduled = useRef(false);
+  const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/orders")
-      .then((res) => res.json())
-      .then((data) => {
-        setOrders(data);
-        setAllOrders(data);
-      });
-    fetch("/api/contact")
-      .then((res) => res.json())
-      .then((data) => {
-        setMessages(data);
-        setAllMessages(data);
-      });
+    const fetchSession = async () => {
+      const res = await fetch("/api/admin/session");
+      if (res.status === 401) {
+        setSessionExpired(true);
+        return;
+      }
+      if (!res.ok) {
+        setSessionRemaining("Unknown");
+        return;
+      }
+      const data = await res.json();
+      setSessionExpiresAt(typeof data.expiresAt === "number" ? data.expiresAt : null);
+      setSessionExpired(false);
+    };
+
+    fetchSession();
   }, []);
+
+  useEffect(() => {
+    if (!sessionExpiresAt) {
+      return;
+    }
+    const tick = () => {
+      const remainingMs = Math.max(0, sessionExpiresAt - Date.now());
+      const minutes = Math.floor(remainingMs / 60000);
+      const seconds = Math.floor((remainingMs % 60000) / 1000);
+      if (remainingMs <= 0) {
+        setSessionRemaining("Expired");
+        setSessionExpired(true);
+        return;
+      }
+      setSessionRemaining(`${minutes}m ${seconds}s`);
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [sessionExpiresAt]);
+
+  useEffect(() => {
+    if (!sessionExpired || redirectScheduled.current) {
+      return;
+    }
+    redirectScheduled.current = true;
+    const timer = setTimeout(() => {
+      router.push("/admin/login");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [router, sessionExpired]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const res = await fetch("/api/orders");
+      if (res.status === 401) {
+        router.push("/admin/login");
+        return;
+      }
+      const data = await res.json();
+      setOrders(data);
+      setAllOrders(data);
+    };
+
+    const fetchMessages = async () => {
+      const res = await fetch("/api/contact");
+      if (res.status === 401) {
+        router.push("/admin/login");
+        return;
+      }
+      const data = await res.json();
+      setMessages(data);
+      setAllMessages(data);
+    };
+
+    fetchOrders();
+    fetchMessages();
+  }, [router]);
 
   useEffect(() => {
     const filtered = allOrders.filter(
@@ -74,8 +143,20 @@ export default function AdminPage() {
           <span className="mr-4">Are you sure you want to delete this order?</span>
           <button
             onClick={() => {
-              fetch(`/api/orders?id=${id}`, { method: "DELETE" }).then(() => {
-                setOrders(orders.filter((order) => order.id !== id));
+              fetch(`/api/orders?id=${id}`, { method: "DELETE" }).then((res) => {
+                if (res.status === 401) {
+                  toast.dismiss(t.id);
+                  toast.error("Session expired. Please log in again.");
+                  router.push("/admin/login");
+                  return;
+                }
+                if (!res.ok) {
+                  toast.dismiss(t.id);
+                  toast.error("Failed to delete order.");
+                  return;
+                }
+                setOrders((prev) => prev.filter((order) => order.id !== id));
+                setAllOrders((prev) => prev.filter((order) => order.id !== id));
                 toast.dismiss(t.id);
                 toast.success("Order deleted!");
               });
@@ -105,8 +186,20 @@ export default function AdminPage() {
           <span className="mr-4">Are you sure you want to delete this message?</span>
           <button
             onClick={() => {
-              fetch(`/api/contact?id=${id}`, { method: "DELETE" }).then(() => {
-                setMessages(messages.filter((msg) => msg.id !== id));
+              fetch(`/api/contact?id=${id}`, { method: "DELETE" }).then((res) => {
+                if (res.status === 401) {
+                  toast.dismiss(t.id);
+                  toast.error("Session expired. Please log in again.");
+                  router.push("/admin/login");
+                  return;
+                }
+                if (!res.ok) {
+                  toast.dismiss(t.id);
+                  toast.error("Failed to delete message.");
+                  return;
+                }
+                setMessages((prev) => prev.filter((msg) => msg.id !== id));
+                setAllMessages((prev) => prev.filter((msg) => msg.id !== id));
                 toast.dismiss(t.id);
                 toast.success("Message deleted!");
               });
@@ -159,9 +252,70 @@ export default function AdminPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    router.push("/admin/login");
+  };
+
+  const handleExtendSession = async () => {
+    const res = await fetch("/api/admin/refresh", { method: "POST" });
+    if (res.status === 401) {
+      setSessionExpired(true);
+      return;
+    }
+    if (!res.ok) {
+      toast.error("Failed to extend session.");
+      return;
+    }
+    const sessionRes = await fetch("/api/admin/session");
+    if (!sessionRes.ok) {
+      return;
+    }
+    const data = await sessionRes.json();
+    setSessionExpiresAt(typeof data.expiresAt === "number" ? data.expiresAt : null);
+    setSessionExpired(false);
+  };
+
   return (
     <div className="container mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold text-center mb-8">Admin Dashboard</h1>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+        <h1 className="text-4xl font-bold text-center md:text-left">
+          Admin Dashboard
+        </h1>
+        <div className="flex flex-col items-center gap-3 md:flex-row md:items-center">
+          <div className="text-sm text-gray-400">
+            Session: {sessionRemaining}
+          </div>
+          <button
+            onClick={handleExtendSession}
+            className="bg-primary text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600"
+          >
+            Extend Session
+          </button>
+          <button
+            onClick={handleLogout}
+            className="bg-gray-700 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600"
+          >
+            Log Out
+          </button>
+        </div>
+      </div>
+      {sessionExpired && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-secondary text-foreground rounded-lg p-6 max-w-sm w-full shadow-xl text-center">
+            <h2 className="text-2xl font-bold mb-2">Session expired</h2>
+            <p className="text-gray-400 mb-4">
+              You will be redirected to the login page in a few seconds.
+            </p>
+            <button
+              onClick={() => router.push("/admin/login")}
+              className="bg-primary text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Analytics Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
@@ -239,55 +393,6 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Message Center Section */}
-      <div className="bg-secondary p-8 rounded-lg shadow-md">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold">Message Center</h2>
-          <input
-            type="text"
-            placeholder="Search messages..."
-            value={messageSearch}
-            onChange={(e) => setMessageSearch(e.target.value)}
-            className="bg-background text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div className="overflow-x-auto">
-        <table className="w-full table-auto">
-          <thead>
-            <tr className="bg-background">
-              <th className="px-4 py-2 text-left text-primary">Name</th>
-              <th className="px-4 py-2 text-left text-primary">Email</th>
-              <th className="px-4 py-2 text-left text-primary">Message</th>
-              <th className="px-4 py-2 text-left text-primary">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {messages.map((message) => (
-              <tr key={message.id} className="border-b border-gray-700">
-                <td className="px-4 py-2">{message.name}</td>
-                <td className="px-4 py-2">{message.email}</td>
-                <td className="px-4 py-2 max-w-sm truncate">{message.message}</td>
-                <td className="px-4 py-2 flex items-center space-x-2">
-                  <a
-                    href={`mailto:${message.email}`}
-                    className="bg-primary text-white font-bold py-1 px-3 rounded-md hover:bg-blue-600"
-                  >
-                    Email
-                  </a>
-                  <button
-                    onClick={() => handleDeleteMessage(message.id)}
-                    className="bg-red-600 text-white font-bold py-1 px-3 rounded-md hover:bg-red-700"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
         </div>
       </div>
 

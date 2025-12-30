@@ -15,8 +15,8 @@ export default function Header() {
               </Link>
             </li>
             <li>
-              <Link href="/about" className="text-foreground hover:text-primary">
-                About
+              <Link href="/#contact" className="text-foreground hover:text-primary">
+                Contact
               </Link>
             </li>
             <li>
@@ -25,14 +25,6 @@ export default function Header() {
                 className="text-foreground hover:text-primary"
               >
                 Place Order
-              </Link>
-            </li>
-            <li>
-              <Link
-                href="/#contact"
-                className="text-foreground hover:text-primary"
-              >
-                Contact
               </Link>
             </li>
           </ul>

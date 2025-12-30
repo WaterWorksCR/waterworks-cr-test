@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tsparticles/react": "^3.0.0",
+    "better-sqlite3": "^11.10.0",
     "formik": "^2.4.9",
     "framer-motion": "^12.23.25",
     "next": "16.0.6",
@@ -28,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/better-sqlite3": "^7.6.12",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.6",

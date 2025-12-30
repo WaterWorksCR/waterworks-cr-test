@@ -1,29 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { deleteMessage, getMessages, saveMessage } from "@/lib/messages";
 
-const messagesFilePath = path.join(process.cwd(), "data", "messages.json");
-
-async function getMessages() {
-  try {
-    const data = await fs.readFile(messagesFilePath, "utf-8");
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
+export async function GET(req: NextRequest) {
+  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
+  if (!isLoggedIn) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-}
-
-async function saveMessage(message: any) {
-  const messages = await getMessages();
-  messages.push(message);
-  await fs.writeFile(messagesFilePath, JSON.stringify(messages, null, 2));
-}
-
-async function saveMessages(messages: any[]) {
-  await fs.writeFile(messagesFilePath, JSON.stringify(messages, null, 2));
-}
-
-export async function GET() {
   const messages = await getMessages();
   return NextResponse.json(messages);
 }
@@ -40,14 +22,12 @@ export async function POST(req: NextRequest) {
     }
 
     const newMessage = {
-      id: Date.now(),
       name,
       email,
       message,
-      timestamp: new Date().toISOString(),
     };
 
-    await saveMessage(newMessage);
+    saveMessage(newMessage);
 
     return NextResponse.json(
       { message: "Message received successfully" },
@@ -64,6 +44,10 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
+    if (!isLoggedIn) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -86,7 +70,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await saveMessages(filteredMessages);
+    deleteMessage(Number(id));
 
     return NextResponse.json(
       { message: "Message deleted successfully" },

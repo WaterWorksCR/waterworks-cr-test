@@ -1,24 +1,69 @@
-import fs from "fs";
-import path from "path";
+import { db } from "@/lib/db";
 
-const ordersFilePath = path.join(process.cwd(), "data", "orders.json");
-
-export function getOrders() {
-  if (!fs.existsSync(ordersFilePath)) {
-    return [];
-  }
-  const fileContent = fs.readFileSync(ordersFilePath, "utf-8");
-  return JSON.parse(fileContent);
+export interface OrderInput {
+  name: string;
+  email: string;
+  service: string;
+  deliveryMethod: string;
+  address?: string;
+  details: string;
 }
 
-export function saveOrder(order: any) {
-  const orders = getOrders();
-  orders.push({ id: Date.now(), ...order });
-  fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2));
+export interface Order extends OrderInput {
+  id: number;
+  createdAt: string;
+}
+
+export function getOrders(): Order[] {
+  const rows = db
+    .prepare(
+      `
+      SELECT id, name, email, service, delivery_method, address, details, created_at
+      FROM orders
+      ORDER BY created_at DESC
+    `
+    )
+    .all() as Array<{
+    id: number;
+    name: string;
+    email: string;
+    service: string;
+    delivery_method: string;
+    address: string | null;
+    details: string;
+    created_at: string;
+  }>;
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    service: row.service,
+    deliveryMethod: row.delivery_method,
+    address: row.address ?? undefined,
+    details: row.details,
+    createdAt: row.created_at,
+  }));
+}
+
+export function saveOrder(order: OrderInput) {
+  const stmt = db.prepare(`
+    INSERT INTO orders
+    (name, email, service, delivery_method, address, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  stmt.run(
+    order.name,
+    order.email,
+    order.service,
+    order.deliveryMethod,
+    order.address ?? null,
+    order.details,
+    new Date().toISOString()
+  );
 }
 
 export function deleteOrder(id: number) {
-  let orders = getOrders();
-  orders = orders.filter((order: any) => order.id !== id);
-  fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2));
+  db.prepare("DELETE FROM orders WHERE id = ?").run(id);
 }
