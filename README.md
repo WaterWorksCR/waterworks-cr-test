@@ -6,4 +6,4 @@ lowkey need to update this
 
 vibecoding+
 
-Deployment notes: see `DEPLOYMENT.md`.
+ive added a lot of code youre welcome 
