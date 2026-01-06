@@ -19,6 +19,8 @@ interface Message {
   id: number;
   name: string;
   email: string;
+  interest: string;
+  siteType: string;
   message: string;
 }
 
@@ -131,6 +133,8 @@ export default function AdminPage() {
       (message) =>
         message.name.toLowerCase().includes(messageSearch.toLowerCase()) ||
         message.email.toLowerCase().includes(messageSearch.toLowerCase()) ||
+        message.interest.toLowerCase().includes(messageSearch.toLowerCase()) ||
+        message.siteType.toLowerCase().includes(messageSearch.toLowerCase()) ||
         message.message.toLowerCase().includes(messageSearch.toLowerCase())
     );
     setMessages(filtered);
@@ -414,6 +418,8 @@ export default function AdminPage() {
             <tr className="bg-background">
               <th className="px-4 py-2 text-left text-primary">Name</th>
               <th className="px-4 py-2 text-left text-primary">Email</th>
+              <th className="px-4 py-2 text-left text-primary">Interest</th>
+              <th className="px-4 py-2 text-left text-primary">Site Type</th>
               <th className="px-4 py-2 text-left text-primary">Message</th>
               <th className="px-4 py-2 text-left text-primary">Actions</th>
             </tr>
@@ -423,6 +429,8 @@ export default function AdminPage() {
               <tr key={message.id} className="border-b border-gray-700">
                 <td className="px-4 py-2">{message.name}</td>
                 <td className="px-4 py-2">{message.email}</td>
+                <td className="px-4 py-2">{message.interest}</td>
+                <td className="px-4 py-2">{message.siteType}</td>
                 <td className="px-4 py-2 max-w-sm truncate">{message.message}</td>
                 <td className="px-4 py-2 flex items-center space-x-2">
                   <a

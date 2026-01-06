@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#e8f6ff"/>
+      <stop offset="100%" stop-color="#cfe6ff"/>
+    </linearGradient>
+    <linearGradient id="bottle" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f8fbff"/>
+      <stop offset="100%" stop-color="#d9e7ff"/>
+    </linearGradient>
+    <linearGradient id="label" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#0b5f9a"/>
+      <stop offset="100%" stop-color="#47b3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="600" fill="url(#bg)"/>
+  <circle cx="150" cy="120" r="70" fill="#ffffff" opacity="0.5"/>
+  <circle cx="780" cy="110" r="90" fill="#ffffff" opacity="0.35"/>
+  <circle cx="720" cy="470" r="120" fill="#ffffff" opacity="0.3"/>
+
+  <rect x="220" y="130" width="140" height="360" rx="60" fill="url(#bottle)" stroke="#a3c7e6" stroke-width="6"/>
+  <rect x="245" y="110" width="90" height="40" rx="18" fill="#c3d9f0"/>
+  <rect x="235" y="260" width="110" height="70" rx="20" fill="url(#label)"/>
+
+  <rect x="410" y="90" width="160" height="420" rx="68" fill="url(#bottle)" stroke="#9ec3e3" stroke-width="6"/>
+  <rect x="440" y="60" width="100" height="40" rx="18" fill="#c3d9f0"/>
+  <rect x="430" y="260" width="120" height="80" rx="22" fill="url(#label)"/>
+  <circle cx="490" cy="300" r="20" fill="#e9f4ff"/>
+
+  <rect x="610" y="150" width="120" height="330" rx="52" fill="url(#bottle)" stroke="#a3c7e6" stroke-width="6"/>
+  <rect x="630" y="125" width="80" height="35" rx="16" fill="#c3d9f0"/>
+  <rect x="625" y="280" width="90" height="60" rx="18" fill="url(#label)"/>
+
+  <path d="M120 520c70-40 160-55 240-40 70 12 115 40 180 35 70-6 100-40 170-50 60-9 120 10 150 35" fill="none" stroke="#7fb7e6" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+</svg>

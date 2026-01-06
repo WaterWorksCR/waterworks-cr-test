@@ -27,6 +27,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
+    interest TEXT NOT NULL,
+    site_type TEXT NOT NULL,
     message TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
@@ -35,6 +37,19 @@ db.exec(`
     value TEXT NOT NULL
   );
 `);
+
+function ensureColumn(table: string, column: string, type: string) {
+  const columns = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all() as Array<{ name: string }>;
+  if (columns.some((entry) => entry.name === column)) {
+    return;
+  }
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+}
+
+ensureColumn("messages", "interest", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("messages", "site_type", "TEXT NOT NULL DEFAULT ''");
 
 function getMeta(key: string) {
   const row = db.prepare("SELECT value FROM meta WHERE key = ?").get(key) as
@@ -78,8 +93,8 @@ function migrateJsonIfNeeded() {
   `);
   const insertMessage = db.prepare(`
     INSERT OR IGNORE INTO messages
-    (id, name, email, message, created_at)
-    VALUES (?, ?, ?, ?, ?)
+    (id, name, email, interest, site_type, message, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const order of orders) {
@@ -100,6 +115,8 @@ function migrateJsonIfNeeded() {
       message.id ?? null,
       message.name ?? "",
       message.email ?? "",
+      message.interest ?? "",
+      message.siteType ?? "",
       message.message ?? "",
       message.timestamp ?? new Date().toISOString()
     );

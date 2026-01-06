@@ -9,13 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#000000",
-        foreground: "#FFFFFF",
-        primary: "#0070F3",
-        secondary: "#1A1A1A",
+        background: "#F7F5EF",
+        foreground: "#0B1B2B",
+        primary: "#0D5C8C",
+        secondary: "#0B2438",
+        accent: "#E8B458",
+        mist: "#E8EFF3",
+        clay: "#EADFD0",
       },
       fontFamily: {
-        sans: ["Roboto", "sans-serif"],
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "serif"],
       },
     },
   },

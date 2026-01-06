@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, message } = await req.json();
+    const { name, email, interest, siteType, message } = await req.json();
 
-    if (!name || !email || !message) {
+    if (!name || !email || !interest || !siteType || !message) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
     const newMessage = {
       name,
       email,
+      interest,
+      siteType,
       message,
     };
 

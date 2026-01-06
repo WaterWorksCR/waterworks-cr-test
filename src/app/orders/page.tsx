@@ -20,6 +20,7 @@ import * as Yup from "yup";
 const OrderSchema = Yup.object().shape({
   name: Yup.string().required("Full Name is required"),
   email: Yup.string().email("Invalid email address").required("Email is required"),
+  phone: Yup.string().required("Phone number is required"),
   service: Yup.string().required("Please select a product or service"),
   deliveryMethod: Yup.string().required("Please select a delivery method"),
   address: Yup.string().when("deliveryMethod", {
@@ -37,6 +38,7 @@ export default function OrdersPage() {
     initialValues: {
       name: "",
       email: "",
+      phone: "",
       service: "",
       deliveryMethod: "",
       address: "",
@@ -142,6 +144,25 @@ export default function OrdersPage() {
                   {formik.touched.email && formik.errors.email ? (
                     <div className="text-red-500 text-sm mt-1">
                       {formik.errors.email}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="relative">
+                  <FiPhone className="absolute top-3 left-3 text-gray-400" />
+                  <input
+                    type="tel"
+                    id="phone"
+                    placeholder="Phone Number"
+                    {...formik.getFieldProps("phone")}
+                    className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
+                      formik.touched.phone && formik.errors.phone
+                        ? "border-red-500"
+                        : "border-gray-700"
+                    }`}
+                  />
+                  {formik.touched.phone && formik.errors.phone ? (
+                    <div className="text-red-500 text-sm mt-1">
+                      {formik.errors.phone}
                     </div>
                   ) : null}
                 </div>
