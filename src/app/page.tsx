@@ -31,15 +31,15 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-xs uppercase tracking-[0.4em] text-white/70"
+              className="text-sm tracking-[0.12em] text-white/70"
             >
-              West Texas water systems & supply
+              Pecos + nearby towns
             </motion.p>
             <motion.h1
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-4 font-display text-4xl uppercase tracking-[0.15em] text-white sm:text-5xl"
+              className="mt-4 font-display text-4xl tracking-[0.04em] text-white sm:text-5xl"
             >
               Water, ice, salt, and systems for West Texas.
             </motion.h1>
@@ -74,14 +74,15 @@ export default function Home() {
                 <FiTruck className="text-accent" /> Delivery in 24-48 hours
               </div>
               <div className="flex items-center gap-2">
-                <FiMapPin className="text-accent" /> Serving Pecos & the Permian
+                <FiMapPin className="text-accent" /> Serving Pecos and nearby
+                towns
               </div>
             </div>
           </div>
           <div className="relative">
             <div className="rounded-[32px] border border-white/15 bg-white/10 p-8 shadow-[0_30px_80px_rgba(0,0,0,0.35)] backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.3em] text-white/60">
-                What we stock
+              <p className="text-sm tracking-[0.12em] text-white/60">
+                In stock
               </p>
               <h3 className="mt-3 text-2xl font-semibold text-white">
                 Packaged beverages, ice & salt, and water systems.
@@ -154,10 +155,10 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
-              <p className="text-xs uppercase tracking-[0.4em] text-secondary/60">
-                Consultations
+              <p className="text-sm tracking-[0.12em] text-secondary/60">
+                Talk with us
               </p>
-              <h2 className="mt-4 font-display text-3xl uppercase tracking-[0.2em] text-secondary md:text-4xl">
+              <h2 className="mt-4 font-display text-3xl tracking-[0.06em] text-secondary md:text-4xl">
                 Product specialists for every system.
               </h2>
               <p className="mt-4 text-sm text-slate-600">
@@ -219,10 +220,10 @@ export default function Home() {
       >
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <p className="text-xs uppercase tracking-[0.4em] text-secondary/60">
-              Products & Services
+            <p className="text-sm tracking-[0.12em] text-secondary/60">
+              Products
             </p>
-            <h2 className="mt-4 font-display text-3xl uppercase tracking-[0.2em] text-secondary md:text-4xl">
+            <h2 className="mt-4 font-display text-3xl tracking-[0.06em] text-secondary md:text-4xl">
               Everything you need to stay supplied.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm text-slate-600">
@@ -284,7 +285,7 @@ export default function Home() {
             </motion.div>
           </div>
           <div className="mt-12 rounded-[32px] bg-secondary px-8 py-10 text-white">
-            <h3 className="font-display text-2xl uppercase tracking-[0.2em]">
+            <h3 className="font-display text-2xl tracking-[0.06em]">
               Maintenance Services
             </h3>
             <p className="mt-4 max-w-2xl text-sm text-white/70">
@@ -303,7 +304,7 @@ export default function Home() {
         className="bg-secondary py-16"
       >
         <div className="container mx-auto px-4 text-center">
-          <h2 className="font-display text-3xl uppercase tracking-[0.2em] text-white">
+          <h2 className="font-display text-3xl tracking-[0.06em] text-white">
             Ready to place an order?
           </h2>
           <p className="mt-4 text-sm text-white/70">
