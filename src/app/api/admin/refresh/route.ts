@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminSession, getAdminSessionCookieName, getAdminSessionFromRequest } from "@/lib/admin-session";
 import { createRequestLogger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   const log = createRequestLogger(req, "admin.refresh");
   let status = 200;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("admin.refresh.unauthorized");
     log.end(status);
@@ -13,18 +14,14 @@ export async function POST(req: NextRequest) {
   }
 
   const maxAge = 60 * 60 * 8;
-  const expiresAt = Date.now() + maxAge * 1000;
+  const nextSession = await createAdminSession(session.u, maxAge);
 
-  const response = NextResponse.json({ message: "Session refreshed" });
-  response.cookies.set("isLoggedIn", "true", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge,
+  const response = NextResponse.json({
+    message: "Session refreshed",
+    expiresAt: nextSession.expiresAt,
   });
-  response.cookies.set("sessionExpiresAt", String(expiresAt), {
-    httpOnly: false,
+  response.cookies.set(getAdminSessionCookieName(), nextSession.token, {
+    httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",

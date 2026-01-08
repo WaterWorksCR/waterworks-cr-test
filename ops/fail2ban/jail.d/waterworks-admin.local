@@ -1,0 +1,7 @@
+[waterworks-admin]
+enabled = true
+filter = waterworks-admin
+logpath = /path/to/waterworks/data/logs/security.log
+maxretry = 5
+findtime = 600
+bantime = 3600

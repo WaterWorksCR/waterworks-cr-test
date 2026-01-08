@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { getClientIp, getUserAgent } from "@/lib/request-meta";
 
 type LogLevel = "info" | "warn" | "error";
 
@@ -32,6 +33,8 @@ export function createRequestLogger(req: NextRequest, scope: string) {
     scope,
     method: req.method,
     path: req.nextUrl?.pathname ?? req.url,
+    ip: getClientIp(req),
+    userAgent: getUserAgent(req),
   };
 
   return {

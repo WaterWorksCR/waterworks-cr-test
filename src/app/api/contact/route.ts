@@ -9,13 +9,21 @@ import {
   messageInputSchema,
   messageUpdateSchema,
 } from "@/lib/api-schemas";
+import { getAdminSessionFromRequest } from "@/lib/admin-session";
 import { createRequestLogger, formatError } from "@/lib/logger";
+import { getClientIp } from "@/lib/request-meta";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+
+const CONTACT_LIMIT =
+  Number.parseInt(process.env.CONTACT_RATE_LIMIT ?? "6", 10) || 6;
+const CONTACT_WINDOW_MS =
+  Number.parseInt(process.env.CONTACT_RATE_WINDOW_MS ?? "60000", 10) || 60000;
 
 export async function GET(req: NextRequest) {
   const log = createRequestLogger(req, "contact.get");
   let status = 200;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("contact.unauthorized");
     log.end(status);
@@ -30,6 +38,21 @@ export async function POST(req: NextRequest) {
   const log = createRequestLogger(req, "contact.post");
   let status = 200;
   try {
+    const ip = getClientIp(req);
+    const rate = checkRateLimit({
+      key: `contact_post:${ip}`,
+      limit: CONTACT_LIMIT,
+      windowMs: CONTACT_WINDOW_MS,
+    });
+    if (!rate.allowed) {
+      status = 429;
+      log.warn("contact.rate_limited", { ip });
+      return NextResponse.json(
+        { message: "Too many requests. Try again shortly." },
+        { status, headers: rateLimitHeaders(rate) }
+      );
+    }
+
     const payload = await req.json();
     const parsed = messageInputSchema.safeParse(payload);
     if (!parsed.success) {
@@ -65,8 +88,8 @@ export async function DELETE(req: NextRequest) {
   const log = createRequestLogger(req, "contact.delete");
   let status = 200;
   try {
-    const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-    if (!isLoggedIn) {
+    const session = await getAdminSessionFromRequest(req);
+    if (!session) {
       status = 401;
       log.warn("contact.unauthorized");
       return NextResponse.json({ message: "Unauthorized" }, { status });
@@ -115,8 +138,8 @@ export async function PATCH(req: NextRequest) {
   const log = createRequestLogger(req, "contact.patch");
   let status = 200;
   let messageId: number | null = null;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("contact.unauthorized");
     log.end(status);

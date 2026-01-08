@@ -3,14 +3,22 @@ import {
   orderInputSchema,
   orderUpdateSchema,
 } from "@/lib/api-schemas";
+import { getAdminSessionFromRequest } from "@/lib/admin-session";
 import { createRequestLogger, formatError } from "@/lib/logger";
+import { getClientIp } from "@/lib/request-meta";
+import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
+
+const ORDER_LIMIT =
+  Number.parseInt(process.env.ORDER_RATE_LIMIT ?? "6", 10) || 6;
+const ORDER_WINDOW_MS =
+  Number.parseInt(process.env.ORDER_RATE_WINDOW_MS ?? "60000", 10) || 60000;
 
 export async function GET(req: NextRequest) {
   const log = createRequestLogger(req, "orders.get");
   let status = 200;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("orders.unauthorized");
     log.end(status);
@@ -25,6 +33,21 @@ export async function POST(req: NextRequest) {
   const log = createRequestLogger(req, "orders.post");
   let status = 200;
   try {
+    const ip = getClientIp(req);
+    const rate = checkRateLimit({
+      key: `orders_post:${ip}`,
+      limit: ORDER_LIMIT,
+      windowMs: ORDER_WINDOW_MS,
+    });
+    if (!rate.allowed) {
+      status = 429;
+      log.warn("orders.rate_limited", { ip });
+      return NextResponse.json(
+        { message: "Too many requests. Try again shortly." },
+        { status, headers: rateLimitHeaders(rate) }
+      );
+    }
+
     const payload = await req.json();
     const parsed = orderInputSchema.safeParse(payload);
     if (!parsed.success) {
@@ -55,8 +78,8 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const log = createRequestLogger(req, "orders.delete");
   let status = 200;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("orders.unauthorized");
     log.end(status);
@@ -79,8 +102,8 @@ export async function PATCH(req: NextRequest) {
   const log = createRequestLogger(req, "orders.patch");
   let status = 200;
   let orderId: number | null = null;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
-  if (!isLoggedIn) {
+  const session = await getAdminSessionFromRequest(req);
+  if (!session) {
     status = 401;
     log.warn("orders.unauthorized");
     log.end(status);

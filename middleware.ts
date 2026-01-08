@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAdminSessionFromRequest } from "@/lib/admin-session";
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
+  const session = await getAdminSessionFromRequest(req);
+  const isLoggedIn = Boolean(session);
 
   if (pathname.startsWith("/admin")) {
     if (pathname === "/admin/login") {
