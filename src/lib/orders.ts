@@ -61,7 +61,8 @@ export function saveOrder(order: OrderInput) {
 }
 
 export function deleteOrder(id: number) {
-  db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+  const result = db.prepare("DELETE FROM orders WHERE id = ?").run(id);
+  return result.changes > 0;
 }
 
 export function updateOrder(
@@ -79,8 +80,18 @@ export function updateOrder(
     values.push(updates.adminNotes);
   }
   if (fields.length === 0) {
-    return;
+    return 0;
   }
   values.push(id);
-  db.prepare(`UPDATE orders SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+  const result = db
+    .prepare(`UPDATE orders SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+  return result.changes;
+}
+
+export function orderExists(id: number) {
+  const row = db.prepare("SELECT 1 as one FROM orders WHERE id = ?").get(id) as
+    | { one: number }
+    | undefined;
+  return Boolean(row);
 }

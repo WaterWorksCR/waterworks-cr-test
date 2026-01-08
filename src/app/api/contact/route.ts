@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   deleteMessage,
   getMessages,
+  messageExists,
   saveMessage,
   updateMessage,
 } from "@/lib/messages";
@@ -97,26 +98,22 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
-    if (!id) {
+    const parsedId = id ? Number(id) : NaN;
+    if (!Number.isInteger(parsedId) || parsedId <= 0) {
       status = 400;
       return NextResponse.json(
-        { message: "Message ID is required" },
+        { message: "Valid message ID is required" },
         { status }
       );
     }
-
-    const messages = await getMessages();
-    const filteredMessages = messages.filter((msg) => msg.id.toString() !== id);
-
-    if (messages.length === filteredMessages.length) {
+    const deleted = deleteMessage(parsedId);
+    if (!deleted) {
       status = 404;
       return NextResponse.json(
         { message: "Message not found" },
         { status }
       );
     }
-
-    deleteMessage(Number(id));
 
     return NextResponse.json(
       { message: "Message deleted successfully" },
@@ -158,10 +155,15 @@ export async function PATCH(req: NextRequest) {
         { status }
       );
     }
-    updateMessage(parsed.data.id, {
+    const updated = updateMessage(parsed.data.id, {
       status: parsed.data.status,
       adminNotes: parsed.data.adminNotes,
     });
+    if (updated === 0 && !messageExists(parsed.data.id)) {
+      status = 404;
+      log.warn("contact.update_not_found", { messageId: parsed.data.id });
+      return NextResponse.json({ message: "Message not found" }, { status });
+    }
     messageId = parsed.data.id;
     return NextResponse.json(
       { message: "Message updated successfully" },

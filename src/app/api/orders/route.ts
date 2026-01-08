@@ -1,4 +1,4 @@
-import { deleteOrder, getOrders, saveOrder, updateOrder } from "@/lib/orders";
+import { deleteOrder, getOrders, orderExists, saveOrder, updateOrder } from "@/lib/orders";
 import {
   orderInputSchema,
   orderUpdateSchema,
@@ -87,15 +87,22 @@ export async function DELETE(req: NextRequest) {
   }
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  if (id) {
-    deleteOrder(parseInt(id));
-    log.end(status, { orderId: Number(id) });
-    return NextResponse.json({ message: "Order deleted successfully" });
+  const parsedId = id ? Number(id) : NaN;
+  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    status = 400;
+    log.warn("orders.delete_missing_id");
+    log.end(status);
+    return NextResponse.json({ message: "Valid ID required" }, { status });
   }
-  status = 400;
-  log.warn("orders.delete_missing_id");
-  log.end(status);
-  return NextResponse.json({ message: "ID not found" }, { status });
+  const deleted = deleteOrder(parsedId);
+  if (!deleted) {
+    status = 404;
+    log.warn("orders.delete_not_found", { orderId: parsedId });
+    log.end(status);
+    return NextResponse.json({ message: "Order not found" }, { status });
+  }
+  log.end(status, { orderId: parsedId });
+  return NextResponse.json({ message: "Order deleted successfully" });
 }
 
 export async function PATCH(req: NextRequest) {
@@ -122,10 +129,15 @@ export async function PATCH(req: NextRequest) {
         { status }
       );
     }
-    updateOrder(parsed.data.id, {
+    const updated = updateOrder(parsed.data.id, {
       status: parsed.data.status,
       adminNotes: parsed.data.adminNotes,
     });
+    if (updated === 0 && !orderExists(parsed.data.id)) {
+      status = 404;
+      log.warn("orders.update_not_found", { orderId: parsed.data.id });
+      return NextResponse.json({ message: "Order not found" }, { status });
+    }
     orderId = parsed.data.id;
     return NextResponse.json({ message: "Order updated successfully" }, { status });
   } catch (error) {

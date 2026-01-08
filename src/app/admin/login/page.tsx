@@ -1,10 +1,21 @@
-import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="container mx-auto px-4 py-12" />}>
-      <LoginForm />
-    </Suspense>
-  );
+type LoginPageProps = {
+  searchParams?: Promise<{ redirect?: string }>;
+};
+
+function normalizeRedirect(value?: string) {
+  if (!value) {
+    return "/admin";
+  }
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return "/admin";
+  }
+  return value;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolved = searchParams ? await searchParams : undefined;
+  const redirectTo = normalizeRedirect(resolved?.redirect);
+  return <LoginForm redirectTo={redirectTo} />;
 }

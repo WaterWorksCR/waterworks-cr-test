@@ -4,16 +4,26 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { inputLimits } from "@/lib/api-schemas";
 import type { MessageInput } from "@/lib/api-schemas";
 
 const ContactSchema = Yup.object().shape({
-  name: Yup.string().required("Name is required"),
+  name: Yup.string()
+    .max(inputLimits.name, "Name is too long")
+    .required("Name is required"),
   email: Yup.string()
     .email("Invalid email address")
+    .max(inputLimits.email, "Email is too long")
     .required("Email is required"),
-  interest: Yup.string().required("Please select a consultation focus"),
-  siteType: Yup.string().required("Please select a site type"),
-  message: Yup.string().required("Message is required"),
+  interest: Yup.string()
+    .max(inputLimits.interest, "Consultation focus is too long")
+    .required("Please select a consultation focus"),
+  siteType: Yup.string()
+    .max(inputLimits.siteType, "Site type is too long")
+    .required("Please select a site type"),
+  message: Yup.string()
+    .max(inputLimits.message, "Message is too long")
+    .required("Message is required"),
 });
 
 export default function Contact() {
@@ -88,6 +98,7 @@ export default function Contact() {
                   type="text"
                   id="name"
                   {...formik.getFieldProps("name")}
+                  maxLength={inputLimits.name}
                   className={`mt-2 w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent ${
                     formik.touched.name && formik.errors.name
                       ? "border-red-500"
@@ -111,6 +122,7 @@ export default function Contact() {
                   type="email"
                   id="email"
                   {...formik.getFieldProps("email")}
+                  maxLength={inputLimits.email}
                   className={`mt-2 w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent ${
                     formik.touched.email && formik.errors.email
                       ? "border-red-500"
@@ -213,6 +225,7 @@ export default function Contact() {
                   id="message"
                   {...formik.getFieldProps("message")}
                   rows={4}
+                  maxLength={inputLimits.message}
                   className={`mt-2 w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent ${
                     formik.touched.message && formik.errors.message
                       ? "border-red-500"

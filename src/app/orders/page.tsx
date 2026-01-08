@@ -16,20 +16,36 @@ import {
 import toast from "react-hot-toast";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import { inputLimits } from "@/lib/api-schemas";
 import type { OrderInput } from "@/lib/api-schemas";
 
 const OrderSchema = Yup.object().shape({
-  name: Yup.string().required("Full Name is required"),
-  email: Yup.string().email("Invalid email address").required("Email is required"),
-  phone: Yup.string().required("Phone number is required"),
-  service: Yup.string().required("Please select a product or service"),
-  deliveryMethod: Yup.string().required("Please select a delivery method"),
-  address: Yup.string().when("deliveryMethod", {
-    is: "Delivery",
-    then: (schema) => schema.required("An address is required for delivery"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-  details: Yup.string().required("Details are required"),
+  name: Yup.string()
+    .max(inputLimits.name, "Name is too long")
+    .required("Full Name is required"),
+  email: Yup.string()
+    .email("Invalid email address")
+    .max(inputLimits.email, "Email is too long")
+    .required("Email is required"),
+  phone: Yup.string()
+    .max(inputLimits.phone, "Phone number is too long")
+    .required("Phone number is required"),
+  service: Yup.string()
+    .max(inputLimits.service, "Service is too long")
+    .required("Please select a product or service"),
+  deliveryMethod: Yup.string()
+    .max(inputLimits.deliveryMethod, "Delivery method is too long")
+    .required("Please select a delivery method"),
+  address: Yup.string()
+    .max(inputLimits.address, "Address is too long")
+    .when("deliveryMethod", {
+      is: "Delivery",
+      then: (schema) => schema.required("An address is required for delivery"),
+      otherwise: (schema) => schema.notRequired(),
+    }),
+  details: Yup.string()
+    .max(inputLimits.details, "Details are too long")
+    .required("Details are required"),
 });
 
 export default function OrdersPage() {
@@ -117,6 +133,7 @@ export default function OrdersPage() {
                     id="name"
                     placeholder="Full Name"
                     {...formik.getFieldProps("name")}
+                    maxLength={inputLimits.name}
                     className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
                       formik.touched.name && formik.errors.name
                         ? "border-red-500"
@@ -136,6 +153,7 @@ export default function OrdersPage() {
                     id="email"
                     placeholder="Email Address"
                     {...formik.getFieldProps("email")}
+                    maxLength={inputLimits.email}
                     className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
                       formik.touched.email && formik.errors.email
                         ? "border-red-500"
@@ -155,6 +173,7 @@ export default function OrdersPage() {
                     id="phone"
                     placeholder="Phone Number"
                     {...formik.getFieldProps("phone")}
+                    maxLength={inputLimits.phone}
                     className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
                       formik.touched.phone && formik.errors.phone
                         ? "border-red-500"
@@ -250,6 +269,7 @@ export default function OrdersPage() {
                         id="address"
                         placeholder="Delivery Address"
                         {...formik.getFieldProps("address")}
+                        maxLength={inputLimits.address}
                         className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
                           formik.touched.address && formik.errors.address
                             ? "border-red-500"
@@ -271,6 +291,7 @@ export default function OrdersPage() {
                     id="details"
                     placeholder="Project Details or Questions"
                     {...formik.getFieldProps("details")}
+                    maxLength={inputLimits.details}
                     className={`w-full pl-10 pr-3 py-2 border-2 rounded-lg bg-background text-foreground focus:outline-none focus:border-primary ${
                       formik.touched.details && formik.errors.details
                         ? "border-red-500"

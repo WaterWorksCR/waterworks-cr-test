@@ -57,7 +57,8 @@ export function saveMessage(message: MessageInput) {
 }
 
 export function deleteMessage(id: number) {
-  db.prepare("DELETE FROM messages WHERE id = ?").run(id);
+  const result = db.prepare("DELETE FROM messages WHERE id = ?").run(id);
+  return result.changes > 0;
 }
 
 export function updateMessage(
@@ -75,8 +76,18 @@ export function updateMessage(
     values.push(updates.adminNotes);
   }
   if (fields.length === 0) {
-    return;
+    return 0;
   }
   values.push(id);
-  db.prepare(`UPDATE messages SET ${fields.join(", ")} WHERE id = ?`).run(...values);
+  const result = db
+    .prepare(`UPDATE messages SET ${fields.join(", ")} WHERE id = ?`)
+    .run(...values);
+  return result.changes;
+}
+
+export function messageExists(id: number) {
+  const row = db.prepare("SELECT 1 as one FROM messages WHERE id = ?").get(id) as
+    | { one: number }
+    | undefined;
+  return Boolean(row);
 }

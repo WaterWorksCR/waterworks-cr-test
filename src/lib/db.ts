@@ -11,6 +11,8 @@ const dbPath = path.join(dataDir, "app.db");
 export const db = new Database(dbPath);
 
 db.pragma("journal_mode = WAL");
+db.pragma("busy_timeout = 5000");
+db.pragma("foreign_keys = ON");
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS orders (
@@ -48,6 +50,10 @@ db.exec(`
     salt TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
+  CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at);
+  CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at);
+  CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+  CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
 `);
 
 function ensureColumn(table: string, column: string, type: string) {
