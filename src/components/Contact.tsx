@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
 import { FaFacebook, FaTwitter, FaInstagram } from "react-icons/fa";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import type { MessageInput } from "@/lib/api-schemas";
 
 const ContactSchema = Yup.object().shape({
   name: Yup.string().required("Name is required"),
@@ -17,7 +17,7 @@ const ContactSchema = Yup.object().shape({
 });
 
 export default function Contact() {
-  const formik = useFormik({
+  const formik = useFormik<MessageInput>({
     initialValues: {
       name: "",
       email: "",

@@ -29,7 +29,7 @@ export default function LoginForm() {
 
       const redirect = searchParams.get("redirect") || "/admin";
       router.push(redirect);
-    } catch (err) {
+    } catch {
       setError("Login failed. Please try again.");
     }
   };

@@ -17,10 +17,13 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
+    phone TEXT NOT NULL,
     service TEXT NOT NULL,
     delivery_method TEXT NOT NULL,
     address TEXT,
     details TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    admin_notes TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS messages (
@@ -30,11 +33,20 @@ db.exec(`
     interest TEXT NOT NULL,
     site_type TEXT NOT NULL,
     message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new',
+    admin_notes TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS admin_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    created_at TEXT NOT NULL
   );
 `);
 
@@ -50,6 +62,11 @@ function ensureColumn(table: string, column: string, type: string) {
 
 ensureColumn("messages", "interest", "TEXT NOT NULL DEFAULT ''");
 ensureColumn("messages", "site_type", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "phone", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("orders", "status", "TEXT NOT NULL DEFAULT 'new'");
+ensureColumn("orders", "admin_notes", "TEXT NOT NULL DEFAULT ''");
+ensureColumn("messages", "status", "TEXT NOT NULL DEFAULT 'new'");
+ensureColumn("messages", "admin_notes", "TEXT NOT NULL DEFAULT ''");
 
 function getMeta(key: string) {
   const row = db.prepare("SELECT value FROM meta WHERE key = ?").get(key) as
@@ -75,6 +92,33 @@ function readJsonFile<T>(filePath: string): T | null {
   }
 }
 
+type LegacyOrder = {
+  id?: number;
+  name?: string;
+  email?: string;
+  phone?: string;
+  service?: string;
+  deliveryMethod?: string;
+  address?: string | null;
+  details?: string;
+  status?: string;
+  adminNotes?: string;
+  createdAt?: string;
+};
+
+type LegacyMessage = {
+  id?: number;
+  name?: string;
+  email?: string;
+  interest?: string;
+  siteType?: string;
+  message?: string;
+  status?: string;
+  adminNotes?: string;
+  timestamp?: string;
+  createdAt?: string;
+};
+
 function migrateJsonIfNeeded() {
   if (getMeta("json_imported") === "true") {
     return;
@@ -83,18 +127,18 @@ function migrateJsonIfNeeded() {
   const ordersPath = path.join(dataDir, "orders.json");
   const messagesPath = path.join(dataDir, "messages.json");
 
-  const orders = readJsonFile<any[]>(ordersPath) || [];
-  const messages = readJsonFile<any[]>(messagesPath) || [];
+  const orders = readJsonFile<LegacyOrder[]>(ordersPath) || [];
+  const messages = readJsonFile<LegacyMessage[]>(messagesPath) || [];
 
   const insertOrder = db.prepare(`
     INSERT OR IGNORE INTO orders
-    (id, name, email, service, delivery_method, address, details, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (id, name, email, phone, service, delivery_method, address, details, status, admin_notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertMessage = db.prepare(`
     INSERT OR IGNORE INTO messages
-    (id, name, email, interest, site_type, message, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (id, name, email, interest, site_type, message, status, admin_notes, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   for (const order of orders) {
@@ -102,10 +146,13 @@ function migrateJsonIfNeeded() {
       order.id ?? null,
       order.name ?? "",
       order.email ?? "",
+      order.phone ?? "",
       order.service ?? "",
       order.deliveryMethod ?? "",
       order.address ?? null,
       order.details ?? "",
+      order.status ?? "new",
+      order.adminNotes ?? "",
       order.createdAt ?? new Date().toISOString()
     );
   }
@@ -118,7 +165,9 @@ function migrateJsonIfNeeded() {
       message.interest ?? "",
       message.siteType ?? "",
       message.message ?? "",
-      message.timestamp ?? new Date().toISOString()
+      message.status ?? "new",
+      message.adminNotes ?? "",
+      message.createdAt ?? message.timestamp ?? new Date().toISOString()
     );
   }
 
