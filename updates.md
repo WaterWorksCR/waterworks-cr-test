@@ -24,3 +24,8 @@
 - less AI
 - more code getting ready for prod
 - added more than one admin account on db
+
+## sec update and inhouse TUI
+
+- fail2ban and more
+- tui in rust 
