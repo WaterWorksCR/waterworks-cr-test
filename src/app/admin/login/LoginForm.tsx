@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
-export default function LoginForm() {
+type LoginFormProps = {
+  redirectTo: string;
+};
+
+export default function LoginForm({ redirectTo }: LoginFormProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +30,7 @@ export default function LoginForm() {
         return;
       }
 
-      const redirect = searchParams.get("redirect") || "/admin";
-      router.push(redirect);
+      router.push(redirectTo || "/admin");
     } catch {
       setError("Login failed. Please try again.");
     }
@@ -39,8 +41,11 @@ export default function LoginForm() {
       <h1 className="text-4xl font-bold text-center mb-8">Admin Login</h1>
       <form
         onSubmit={handleSubmit}
+        action="/api/admin/login"
+        method="post"
         className="max-w-sm mx-auto bg-secondary p-8 rounded-lg shadow-md"
       >
+        <input type="hidden" name="redirect" value={redirectTo} />
         {error && <p className="text-red-500 text-center mb-4">{error}</p>}
         <div className="mb-4">
           <label
@@ -52,10 +57,12 @@ export default function LoginForm() {
           <input
             type="text"
             id="username"
+            name="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
             required
+            autoComplete="username"
           />
         </div>
         <div className="mb-4">
@@ -68,10 +75,12 @@ export default function LoginForm() {
           <input
             type="password"
             id="password"
+            name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
             required
+            autoComplete="current-password"
           />
         </div>
         <div className="text-center">
