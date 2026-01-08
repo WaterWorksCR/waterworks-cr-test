@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { useFormik } from "formik";
 import * as Yup from "yup";
+import type { OrderInput } from "@/lib/api-schemas";
 
 const OrderSchema = Yup.object().shape({
   name: Yup.string().required("Full Name is required"),
@@ -34,7 +35,7 @@ const OrderSchema = Yup.object().shape({
 export default function OrdersPage() {
   const [submitted, setSubmitted] = useState(false);
 
-  const formik = useFormik({
+  const formik = useFormik<OrderInput>({
     initialValues: {
       name: "",
       email: "",
@@ -82,7 +83,7 @@ export default function OrdersPage() {
             Place Your Order
           </h1>
           <p className="text-center text-gray-400 mb-12">
-            Fill out the form below to get started. We're ready to help.
+            Fill out the form below to get started. We are ready to help.
           </p>
         </motion.div>
 
@@ -98,7 +99,7 @@ export default function OrdersPage() {
                 <FiCheckCircle className="mx-auto text-green-500 text-6xl mb-4" />
                 <h2 className="text-2xl font-bold mb-2">Order Submitted!</h2>
                 <p className="text-gray-400">
-                  Thank you. We'll be in touch shortly.
+                  Thank you. We will be in touch shortly.
                 </p>
                 <button
                   onClick={() => setSubmitted(false)}

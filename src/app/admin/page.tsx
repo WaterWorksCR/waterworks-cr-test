@@ -1,34 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { FaBoxOpen, FaEnvelope, FaTrash } from "react-icons/fa";
-
-interface Order {
-  id: number;
-  name: string;
-  email: string;
-  service: string;
-  deliveryMethod: string;
-  address?: string;
-  details: string;
-}
-
-interface Message {
-  id: number;
-  name: string;
-  email: string;
-  interest: string;
-  siteType: string;
-  message: string;
-}
+import {
+  messageStatusValues,
+  orderStatusValues,
+  type MessageRecord,
+  type MessageStatus,
+  type OrderRecord,
+  type OrderStatus,
+} from "@/lib/api-schemas";
 
 export default function AdminPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [allMessages, setAllMessages] = useState<Message[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [messages, setMessages] = useState<MessageRecord[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [messageSearch, setMessageSearch] = useState("");
   const [sessionRemaining, setSessionRemaining] = useState<string>("Unknown");
@@ -36,6 +23,7 @@ export default function AdminPage() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const redirectScheduled = useRef(false);
   const router = useRouter();
+  const formatDate = (value: string) => new Date(value).toLocaleString();
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -88,57 +76,136 @@ export default function AdminPage() {
     return () => clearTimeout(timer);
   }, [router, sessionExpired]);
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      const res = await fetch("/api/orders");
-      if (res.status === 401) {
-        router.push("/admin/login");
-        return;
-      }
-      const data = await res.json();
-      setOrders(data);
-      setAllOrders(data);
-    };
+  const fetchOrders = useCallback(async () => {
+    const res = await fetch("/api/orders");
+    if (res.status === 401) {
+      router.push("/admin/login");
+      return;
+    }
+    const data = (await res.json()) as OrderRecord[];
+    setOrders(data);
+  }, [router]);
 
-    const fetchMessages = async () => {
-      const res = await fetch("/api/contact");
-      if (res.status === 401) {
-        router.push("/admin/login");
-        return;
-      }
-      const data = await res.json();
-      setMessages(data);
-      setAllMessages(data);
-    };
-
-    fetchOrders();
-    fetchMessages();
+  const fetchMessages = useCallback(async () => {
+    const res = await fetch("/api/contact");
+    if (res.status === 401) {
+      router.push("/admin/login");
+      return;
+    }
+    const data = (await res.json()) as MessageRecord[];
+    setMessages(data);
   }, [router]);
 
   useEffect(() => {
-    const filtered = allOrders.filter(
-      (order) =>
-        order.name.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        order.email.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        order.service.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        order.details.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        order.deliveryMethod.toLowerCase().includes(orderSearch.toLowerCase()) ||
-        (order.address && order.address.toLowerCase().includes(orderSearch.toLowerCase()))
-    );
-    setOrders(filtered);
-  }, [orderSearch, allOrders]);
+    const load = async () => {
+      await Promise.all([fetchOrders(), fetchMessages()]);
+    };
+    void load();
+  }, [fetchMessages, fetchOrders]);
 
-  useEffect(() => {
-    const filtered = allMessages.filter(
-      (message) =>
-        message.name.toLowerCase().includes(messageSearch.toLowerCase()) ||
-        message.email.toLowerCase().includes(messageSearch.toLowerCase()) ||
-        message.interest.toLowerCase().includes(messageSearch.toLowerCase()) ||
-        message.siteType.toLowerCase().includes(messageSearch.toLowerCase()) ||
-        message.message.toLowerCase().includes(messageSearch.toLowerCase())
+  const filteredOrders = useMemo(() => {
+    const query = orderSearch.toLowerCase();
+    if (!query) {
+      return orders;
+    }
+    return orders.filter(
+      (order) =>
+        order.name.toLowerCase().includes(query) ||
+        order.email.toLowerCase().includes(query) ||
+        order.phone.toLowerCase().includes(query) ||
+        order.service.toLowerCase().includes(query) ||
+        order.details.toLowerCase().includes(query) ||
+        order.deliveryMethod.toLowerCase().includes(query) ||
+        (order.address && order.address.toLowerCase().includes(query)) ||
+        order.status.toLowerCase().includes(query) ||
+        order.adminNotes.toLowerCase().includes(query)
     );
-    setMessages(filtered);
-  }, [messageSearch, allMessages]);
+  }, [orderSearch, orders]);
+
+  const filteredMessages = useMemo(() => {
+    const query = messageSearch.toLowerCase();
+    if (!query) {
+      return messages;
+    }
+    return messages.filter(
+      (message) =>
+        message.name.toLowerCase().includes(query) ||
+        message.email.toLowerCase().includes(query) ||
+        message.interest.toLowerCase().includes(query) ||
+        message.siteType.toLowerCase().includes(query) ||
+        message.message.toLowerCase().includes(query) ||
+        message.status.toLowerCase().includes(query) ||
+        message.adminNotes.toLowerCase().includes(query)
+    );
+  }, [messageSearch, messages]);
+
+  const updateOrderInState = (
+    id: number,
+    updates: Partial<Pick<OrderRecord, "status" | "adminNotes">>
+  ) => {
+    setOrders((prev) =>
+      prev.map((order) => (order.id === id ? { ...order, ...updates } : order))
+    );
+  };
+
+  const updateMessageInState = (
+    id: number,
+    updates: Partial<Pick<MessageRecord, "status" | "adminNotes">>
+  ) => {
+    setMessages((prev) =>
+      prev.map((message) => (message.id === id ? { ...message, ...updates } : message))
+    );
+  };
+
+  const handleOrderUpdate = async (
+    id: number,
+    updates: { status?: OrderStatus; adminNotes?: string }
+  ) => {
+    updateOrderInState(id, updates);
+    const res = await fetch("/api/orders", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (res.status === 401) {
+      toast.error("Session expired. Please log in again.");
+      router.push("/admin/login");
+      return;
+    }
+    if (!res.ok) {
+      toast.error("Failed to update order.");
+      fetchOrders();
+      return;
+    }
+    toast.success("Order updated.");
+  };
+
+  const handleMessageUpdate = async (
+    id: number,
+    updates: { status?: MessageStatus; adminNotes?: string }
+  ) => {
+    updateMessageInState(id, updates);
+    const res = await fetch("/api/contact", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (res.status === 401) {
+      toast.error("Session expired. Please log in again.");
+      router.push("/admin/login");
+      return;
+    }
+    if (!res.ok) {
+      toast.error("Failed to update message.");
+      fetchMessages();
+      return;
+    }
+    toast.success("Message updated.");
+  };
 
   const handleDelete = async (id: number) => {
     toast(
@@ -160,7 +227,6 @@ export default function AdminPage() {
                   return;
                 }
                 setOrders((prev) => prev.filter((order) => order.id !== id));
-                setAllOrders((prev) => prev.filter((order) => order.id !== id));
                 toast.dismiss(t.id);
                 toast.success("Order deleted!");
               });
@@ -203,7 +269,6 @@ export default function AdminPage() {
                   return;
                 }
                 setMessages((prev) => prev.filter((msg) => msg.id !== id));
-                setAllMessages((prev) => prev.filter((msg) => msg.id !== id));
                 toast.dismiss(t.id);
                 toast.success("Message deleted!");
               });
@@ -226,7 +291,7 @@ export default function AdminPage() {
     );
   };
 
-  const handlePrint = (order: Order) => {
+  const handlePrint = (order: OrderRecord) => {
     const printContent = `
       <html>
         <head>
@@ -240,10 +305,12 @@ export default function AdminPage() {
           <h1>Order Details</h1>
           <p><strong>Name:</strong> ${order.name}</p>
           <p><strong>Email:</strong> ${order.email}</p>
+          <p><strong>Phone:</strong> ${order.phone}</p>
           <p><strong>Service:</strong> ${order.service}</p>
           <p><strong>Delivery Method:</strong> ${order.deliveryMethod}</p>
           ${order.address ? `<p><strong>Address:</strong> ${order.address}</p>` : ""}
           <p><strong>Details:</strong> ${order.details}</p>
+          <p><strong>Status:</strong> ${order.status}</p>
         </body>
       </html>
     `;
@@ -357,22 +424,63 @@ export default function AdminPage() {
               <tr className="bg-background">
                 <th className="px-4 py-2 text-left text-primary">Name</th>
                 <th className="px-4 py-2 text-left text-primary">Email</th>
+                <th className="px-4 py-2 text-left text-primary">Phone</th>
                 <th className="px-4 py-2 text-left text-primary">Service</th>
                 <th className="px-4 py-2 text-left text-primary">Delivery</th>
                 <th className="px-4 py-2 text-left text-primary">Address</th>
                 <th className="px-4 py-2 text-left text-primary">Details</th>
+                <th className="px-4 py-2 text-left text-primary">Status</th>
+                <th className="px-4 py-2 text-left text-primary">Created</th>
+                <th className="px-4 py-2 text-left text-primary">Notes</th>
                 <th className="px-4 py-2 text-left text-primary">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id} className="border-b border-gray-700">
                   <td className="px-4 py-2">{order.name}</td>
                   <td className="px-4 py-2">{order.email}</td>
+                  <td className="px-4 py-2">{order.phone}</td>
                   <td className="px-4 py-2">{order.service}</td>
                   <td className="px-4 py-2">{order.deliveryMethod}</td>
                   <td className="px-4 py-2">{order.address || "N/A"}</td>
                   <td className="px-4 py-2">{order.details}</td>
+                  <td className="px-4 py-2">
+                    <select
+                      value={order.status}
+                      onChange={(event) =>
+                        handleOrderUpdate(order.id, {
+                          status: event.target.value as OrderStatus,
+                        })
+                      }
+                      className="bg-background text-white px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      {orderStatusValues.map((status) => (
+                        <option key={status} value={status}>
+                          {status.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-4 py-2">{formatDate(order.createdAt)}</td>
+                  <td className="px-4 py-2">
+                    <textarea
+                      value={order.adminNotes}
+                      onChange={(event) =>
+                        updateOrderInState(order.id, {
+                          adminNotes: event.target.value,
+                        })
+                      }
+                      onBlur={() =>
+                        handleOrderUpdate(order.id, {
+                          adminNotes: order.adminNotes,
+                        })
+                      }
+                      rows={2}
+                      className="w-48 resize-none rounded-md bg-background px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Add notes"
+                    />
+                  </td>
                   <td className="px-4 py-2 flex items-center space-x-2">
                     <a
                       href={`mailto:${order.email}`}
@@ -421,17 +529,56 @@ export default function AdminPage() {
               <th className="px-4 py-2 text-left text-primary">Interest</th>
               <th className="px-4 py-2 text-left text-primary">Site Type</th>
               <th className="px-4 py-2 text-left text-primary">Message</th>
+              <th className="px-4 py-2 text-left text-primary">Status</th>
+              <th className="px-4 py-2 text-left text-primary">Created</th>
+              <th className="px-4 py-2 text-left text-primary">Notes</th>
               <th className="px-4 py-2 text-left text-primary">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {messages.map((message) => (
+            {filteredMessages.map((message) => (
               <tr key={message.id} className="border-b border-gray-700">
                 <td className="px-4 py-2">{message.name}</td>
                 <td className="px-4 py-2">{message.email}</td>
                 <td className="px-4 py-2">{message.interest}</td>
                 <td className="px-4 py-2">{message.siteType}</td>
                 <td className="px-4 py-2 max-w-sm truncate">{message.message}</td>
+                <td className="px-4 py-2">
+                  <select
+                    value={message.status}
+                    onChange={(event) =>
+                      handleMessageUpdate(message.id, {
+                        status: event.target.value as MessageStatus,
+                      })
+                    }
+                    className="bg-background text-white px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {messageStatusValues.map((status) => (
+                      <option key={status} value={status}>
+                        {status.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="px-4 py-2">{formatDate(message.createdAt)}</td>
+                <td className="px-4 py-2">
+                  <textarea
+                    value={message.adminNotes}
+                    onChange={(event) =>
+                      updateMessageInState(message.id, {
+                        adminNotes: event.target.value,
+                      })
+                    }
+                    onBlur={() =>
+                      handleMessageUpdate(message.id, {
+                        adminNotes: message.adminNotes,
+                      })
+                    }
+                    rows={2}
+                    className="w-48 resize-none rounded-md bg-background px-2 py-1 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Add notes"
+                  />
+                </td>
                 <td className="px-4 py-2 flex items-center space-x-2">
                   <a
                     href={`mailto:${message.email}`}

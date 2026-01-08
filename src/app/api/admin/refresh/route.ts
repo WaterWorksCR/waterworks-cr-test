@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createRequestLogger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
+  const log = createRequestLogger(req, "admin.refresh");
+  let status = 200;
   const isLoggedIn = req.cookies.get("isLoggedIn")?.value === "true";
   if (!isLoggedIn) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    status = 401;
+    log.warn("admin.refresh.unauthorized");
+    log.end(status);
+    return NextResponse.json({ message: "Unauthorized" }, { status });
   }
 
   const maxAge = 60 * 60 * 8;
@@ -24,5 +30,6 @@ export async function POST(req: NextRequest) {
     path: "/",
     maxAge,
   });
+  log.end(status);
   return response;
 }
