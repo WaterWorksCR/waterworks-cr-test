@@ -13,10 +13,4 @@ create an admin user in the sqlite db:
 node scripts/create-admin.js --username <name> --password <pass>
 ```
 
-you can also use env vars:
-
-```
-ADMIN_USERNAME=<name> ADMIN_PASSWORD=<pass> node scripts/create-admin.js
-```
-
-migrating a vps: copy the `data/app.db` file to the new server.
+use pm2 restart waterworks-cr-test to after rebuild
